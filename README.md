@@ -6,3 +6,5 @@ Nicolò Mazzoleni: 59935@novasbe.pt
 Fabrizio Rigodanzo: 60526@novasbe.pt
 
 Robert Münchau: 61682@novasbe.pt
+
+Julia Antonioli: 60178@novasbe.pt
