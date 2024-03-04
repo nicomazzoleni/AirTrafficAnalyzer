@@ -1,7 +1,9 @@
 import os
 import pandas as pd
 from .distance_calculator import haversine
-
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 
 class AirTrafficData:
     """Initializes the class by loading datasets into pandas DataFrames."""
