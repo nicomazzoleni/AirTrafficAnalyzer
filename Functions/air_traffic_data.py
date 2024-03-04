@@ -100,10 +100,11 @@ class AirTrafficData:
         routes_adv = routes.join(airports.set_index("Airport ID"), on ="Source airport ID")
         data = routes_adv.join(airplanes.set_index("IATA code"), on ="IATA")
         data = data[(data["Name"].notna()) & (data["IATA"] != "\\N")]
- 
+
         if country != None:
              if isinstance(country, str):
                  country = [country]  
              return data[data["Country"].isin(country)].groupby("Name").size().nlargest(N)
         else:
              return data.groupby("Name").size().nlargest(N)
+
