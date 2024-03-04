@@ -38,6 +38,9 @@ class AirTrafficData:
         Returns:
         The distance in kilometers between the two airports.
         """
+        if airport_code1 not in self.airports_df['IATA'].values or airport_code2 not in self.airports_df['IATA'].values:
+             return None
+            
         coords1 = self.airports_df[self.airports_df['IATA'] == airport_code1]\
             [['Latitude', 'Longitude']].iloc[0]
         coords2 = self.airports_df[self.airports_df['IATA'] == airport_code2]\
@@ -48,3 +51,59 @@ class AirTrafficData:
             coords2['Longitude'], coords2['Latitude']
         )
 
+    def distance_analysis(self):
+        """
+        Perform distance analysis on routes data.
+
+        This method calculates the distances between source and destination airports for each route in the dataset.
+        It utilizes the calculate_distance method to compute the distance between two airports based on their IATA codes.
+        The distances are then stored in a new column 'Distance' in the DataFrame.
+
+        Returns:
+        A histogram showing the distribution of distances between source and destination airports.
+        """
+        routes = self.routes_df[["Source airport ID", "Destination airport ID"]]
+        airports = self.airports_df[["Airport ID", "IATA"]].copy()
+
+        #Joining dataframes & data cleaning
+        airports.loc[:, "Airport ID"] = airports["Airport ID"].astype(str)
+        data = routes.merge(airports, left_on="Source airport ID", right_on="Airport ID", how="left") \
+             .merge(airports, left_on="Destination airport ID", right_on="Airport ID", how="left")
+
+        data.rename(columns={"IATA_x": "Source-IATA", "IATA_y": "Destination-IATA"}, inplace=True)
+        data.drop(columns=["Airport ID_x", "Airport ID_y"], inplace=True)
+
+        data["Distance"] = data.apply(lambda row: self.calculate_distance(row["Source-IATA"], row["Destination-IATA"]), axis=1)
+        
+        return data["Distance"].hist() 
+
+    def most_used_airplane_models(self, N, country=None):
+        """
+        Retrieve the N most frequently used airplane models based on the number of routes they operate.
+
+        Parameters:
+        - N (int): The number of airplane models to retrieve.
+        - country (str or list of str, optional): A string or a list of country names to filter the data. 
+          If provided, only routes from the specified countries will be considered. 
+          If None (default), data from all countries will be included.
+
+        Returns:
+        pandas.Series: A Series containing the counts of routes for each airplane model, 
+        indexed by the airplane model name, sorted in descending order of route counts.
+        """
+        airports = self.airports_df[["Airport ID", "Country", "IATA"]]
+        routes = self.routes_df[["Source airport ID", "Destination airport ID"]]
+        airplanes = self.airplanes_df[["Name","IATA code"]]
+
+        #Joining dataframes & data cleaning
+        airports.loc[:, "Airport ID"] = airports["Airport ID"].astype(str)
+        routes_adv = routes.join(airports.set_index("Airport ID"), on ="Source airport ID")
+        data = routes_adv.join(airplanes.set_index("IATA code"), on ="IATA")
+        data = data[(data["Name"].notna()) & (data["IATA"] != "\\N")]
+ 
+        if country != None:
+             if isinstance(country, str):
+                 country = [country]  
+             return data[data["Country"].isin(country)].groupby("Name").size().nlargest(N)
+        else:
+             return data.groupby("Name").size().nlargest(N)
