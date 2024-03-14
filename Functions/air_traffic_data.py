@@ -4,6 +4,9 @@ from .distance_calculator import haversine
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
+from langchain_openai import ChatOpenAI
+import langchain
+from IPython.display import Markdown
 
 class AirTrafficData:
     """Initializes the class by loading datasets into pandas DataFrames."""
@@ -200,7 +203,7 @@ class AirTrafficData:
 
         Parameters:
         - country_name (str): The name of the country from which flights are departing.
-        - internal (bool, optional): If True, the method plots only internal flights (flights within the same country). If False (default), it plots all flights departing from any airport within the specified country.
+        - internal (bool, optional): If True, the method plots only internal flights (flights within the same country). If False   (default), it plots all flights departing from any airport within the specified country.
 
         Returns:
         The method outputs a bar plot displaying the number of flights departing from the specified country to different destinations. 
@@ -241,5 +244,79 @@ class AirTrafficData:
         plot_data.plot(kind='bar', xlabel='Destination Country', ylabel='Number of Flights', title=f'{"Internal" if internal else "All"} Flights from {country_name}')
         plt.tight_layout()
         plt.show()
+
+    def aircrafts(self):
+        """
+        Prints a list of unique aircraft models from the airplanes DataFrame.
+        """
+        # Get a unique list of aircraft models
+        unique_aircraft_models = self.airplanes_df['Name'].unique()
+       
+        # Print the list of aircraft models
+        print("List of Aircraft Models:")
+        for model in unique_aircraft_models:
+            print(model)
+
+
+    def aircraft_info(self, aircraft_name):
+        """
+        Prints a table of specifications for a given aircraft model in Markdown format.
+    
+        Parameters:
+        - aircraft_name (str): The name of the aircraft model to retrieve specifications for.
+    
+        Raises:
+        - ValueError: If the specified aircraft model is not found in the dataset.
+        """
+        # Check if the aircraft model is in the dataset
+        if aircraft_name not in self.airplanes_df['Name'].values:
+            # Provide guidance for choosing a correct aircraft name
+            available_models = self.airplanes_df['Name'].unique()
+            raise ValueError(f"Aircraft model '{aircraft_name}' not found. Please choose from the available models: {', '.join(available_models)}")
+
+        # Retrieve the row for the specified aircraft model
+        aircraft_specs = self.airplanes_df[self.airplanes_df['Name'] == aircraft_name]
+
+        llm = ChatOpenAI(temperature=0.1)
+        # Call OpenAI for a description
+        try:
+            response = llm.invoke(f"Print out a table of specification for the following aicraft model: {aircraft_name}:")
+            display(Markdown(response.content))
+        except Exception as e:
+            print("Failed to fetch description from OpenAI:", str(e))
+
+
+    
+    def airport_info(self, airport_name):
+        """
+        Prints information for a given airport in Markdown format.
+
+        Parameters:
+        - airport_name (str): The name of the airport to retrieve information for.
+
+        Raises:
+        - ValueError: If the specified airport is not found in the dataset.
+        """
+        # Check if the airport is in the dataset by name
+        if airport_name not in self.airports_df['Name'].values:
+            # Provide guidance for choosing a correct airport name
+            available_airports = self.airports_df['Name'].unique()
+            raise ValueError(f"Airport named '{airport_name}' not found. Please choose from the available airport names: {', '.join(available_airports)}")
+
+        # Retrieve the row for the specified airport by name
+        airport_info = self.airports_df[self.airports_df['Name'] == airport_name]
+
+        # Assuming you have a method or API call to fetch descriptive content about the airport
+        llm = ChatOpenAI(temperature=0.1)
+        # Call OpenAI for a description
+        try:
+            response = llm.invoke(f"Print out a table of specification for the following airport: {airport_name}:")
+            # Use IPython.display.display() to render the Markdown content
+            display(Markdown(response.content))
+        except Exception as e:
+            print("Failed to fetch description from OpenAI:", str(e))
+
+
+
 
 
