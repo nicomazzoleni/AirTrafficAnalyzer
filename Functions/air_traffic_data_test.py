@@ -4,8 +4,8 @@ from .distance_calculator import haversine
 import matplotlib.pyplot as plt
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
-from langchain_openai import ChatOpenAI
-import langchain
+#from langchain_openai import ChatOpenAI
+#import langchain
 from IPython.display import Markdown
 
 
@@ -291,7 +291,96 @@ class AirTrafficData:
                     ha='center', va='center', fontsize=10, fontweight='bold')
         plt.tight_layout()
         plt.show()
+        
 
+    def flights_from_country_3(self, country_name, internal=False, cutoff_distance=1000.0):
+        """
+        This method plots the number of flights departing from all airports within a specified country. 
+        It allows filtering to show either all departing flights or only those flights that are internal to the country.
+
+        Parameters:
+        - country_name (str): The name of the country from which flights are departing.
+        - internal (bool, optional): If True, the method plots only internal flights (flights within the same country). If False   (default), it plots all flights departing from any airport within the specified country.
+
+        Returns:
+        The method outputs a bar plot displaying the number of flights departing from the specified country to different destinations. 
+        If no data is found or there are no airports in the given country, it prints an appropriate message instead of displaying a plot.
+        """
+        # Ensure all IDs are strings for consistent merging
+        self.airports_df["Airport ID"] = self.airports_df["Airport ID"].astype(str)
+        self.routes_df["Source airport ID"] = self.routes_df["Source airport ID"].astype(str)
+        self.routes_df["Destination airport ID"] = self.routes_df["Destination airport ID"].astype(str)
+
+        # Filter airports by country
+        airports_in_country = self.airports_df[self.airports_df['Country'] == country_name]
+
+        if airports_in_country.empty:
+            print(f"No airports found in country '{country_name}'.")
+            return
+
+        # Get all airport IDs in the country
+        airport_ids = airports_in_country['Airport ID'].tolist()
+
+        # Filter routes that originate from these airports
+        filtered_routes = self.routes_df[self.routes_df['Source airport ID'].isin(airport_ids)]
+
+        # Merge filtered routes with destination airports to get country information
+        merged_df = filtered_routes.merge(self.airports_df[['Airport ID', 'Country', 'IATA']], left_on='Destination airport ID', right_on='Airport ID', suffixes=('', '_dest'))
+
+        if internal:
+            # Filter for internal flights
+            plot_data = merged_df[merged_df['Country'] == country_name]['Country'].value_counts()
+        else:
+            # All flights departing from airports in the country
+            plot_data = merged_df['Country'].value_counts()
+
+        if plot_data.empty:
+            print(f"No flights found from country '{country_name}'{' within the same country' if internal else ''}.")
+            return
+
+        plot_data.plot(kind='bar', xlabel='Destination Country', ylabel='Number of Flights', title=f'{"Internal" if internal else "All"} Flights from {country_name}')
+        plt.tight_layout()
+        plt.show()
+    
+        airports_in_country = self.airports_df[self.airports_df['Country'].str.lower() == country_name.lower()].copy()
+        if airports_in_country.empty:
+            print(f"No airports found in country '{country_name}'.")
+            return
+    
+        airport_ids = airports_in_country['Airport ID'].tolist()
+        filtered_routes = self.routes_df[self.routes_df['Source airport ID'].isin(airport_ids)].copy()
+        filtered_routes['Source IATA'] = filtered_routes['Source airport ID'].map(self.airports_df.set_index('Airport ID')['IATA'].to_dict())
+        filtered_routes['Destination IATA'] = filtered_routes['Destination airport ID'].map(self.airports_df.set_index('Airport ID')['IATA'].to_dict())
+        filtered_routes['Distance'] = filtered_routes.apply(
+            lambda row: self.calculate_distance(row['Source IATA'], row['Destination IATA']), axis=1)
+    
+        if internal:
+            filtered_routes = filtered_routes[filtered_routes['Distance'] <= cutoff_distance].copy()
+    
+        filtered_routes['Flight Type'] = ['Short-haul' if d and d <= cutoff_distance else 'Long-haul' for d in filtered_routes['Distance']]
+        plot_data = filtered_routes.groupby('Flight Type').size()
+    
+        # Calculate total distance for short-haul flights, avoiding double count
+        unique_routes = filtered_routes[filtered_routes['Flight Type'] == 'Short-haul']
+        if internal:
+            unique_routes = unique_routes[unique_routes['Source airport ID'].isin(airport_ids) & unique_routes['Destination airport ID'].isin(airport_ids)]
+        unique_routes['Route Set'] = unique_routes.apply(lambda x: frozenset([x['Source IATA'], x['Destination IATA']]), axis=1)
+        unique_distances = unique_routes.drop_duplicates(subset='Route Set')['Distance'].sum()
+    
+        if plot_data.empty:
+            print(f"No flights found from country '{country_name}'{' within the same country' if internal else ''} meeting the distance criteria.")
+            return
+    
+        ax = plot_data.plot(kind='bar', xlabel='Flight Type', ylabel='Number of Flights', title=f'Flights from {country_name}: Short-haul vs Long-haul',
+                            color=['#56B4E9', '#E69F00'], figsize=(10, 6))
+        plt.text(1, plot_data.max() / 2, f'Total Short-haul Distance: {unique_distances:.2f} km', ha='center')
+        ax.annotate(f'Using railways instead of short-haul flights would save {unique_distances*215/1000000:.2f} tons of carbon dioxide emissions',
+                    xy=(0.5, -0.35), xycoords='axes fraction',
+                    xytext=(0.5, -0.35), textcoords='axes fraction',
+                    ha='center', va='center', fontsize=10, fontweight='bold')
+        plt.tight_layout()
+        plt.show()
+        
 
     def aircrafts(self):
         """
@@ -332,7 +421,6 @@ class AirTrafficData:
             display(Markdown(response.content))
         except Exception as e:
             print("Failed to fetch description from OpenAI:", str(e))
-
 
     
     def airport_info(self, airport_name):
