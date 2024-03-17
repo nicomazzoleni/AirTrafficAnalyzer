@@ -65,9 +65,14 @@ class AirTrafficData:
         Returns:
         A pandas DataFrame containing the data from the CSV file.
         """
-        if os.path.exists(file_path):
-            return pd.read_csv(file_path)
-
+        # The path is now relative to the current file location.
+        base_path = os.path.dirname(os.path.dirname(__file__))
+        full_path = os.path.join(base_path, file_path)
+        if os.path.exists(full_path):
+            return pd.read_csv(full_path)
+        else:
+            raise FileNotFoundError(f"The file {full_path} does not exist.")
+        
     def calculate_distance(self, airport_code1, airport_code2):
         """
         Calculates the distance between two airports.
