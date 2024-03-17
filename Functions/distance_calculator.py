@@ -1,22 +1,39 @@
 """
-Module: haversine_distance
+This module calculates the great circle distance between two points on the earth's surface.
 
-This module provides a function to calculate the great circle distance
-in kilometers between two points on the Earth, using the Haversine formula.
+It provides the `haversine` function that implements the Haversine formula, which is an equation giving the shortest distance between two points over the earth's surface.
 
-Functions:
-- haversine(lon1, lat1, lon2, lat2): 
-    Calculates the great circle distance in kilometers between two points 
-    on the Earth, specified in decimal degrees of longitude and latitude.
 """
+
 
 from math import radians, cos, sin, asin, sqrt
 
 
 def haversine(lon1, lat1, lon2, lat2):
     """
-    Calculate the great circle distance in kilometers between two points
-    on the earth (specified in decimal degrees).
+    Calculate the great circle distance between two points on the earth.
+    
+    Parameters
+    ----------
+    lon1 : float
+        Longitude of the first point in decimal degrees.
+    lat1 : float
+        Latitude of the first point in decimal degrees.
+    lon2 : float
+        Longitude of the second point in decimal degrees.
+    lat2 : float
+        Latitude of the second point in decimal degrees.
+    
+    Returns
+    -------
+    float
+        Great circle distance in kilometers between two points.
+    
+    Examples
+    --------
+    >>> haversine(36.12, -86.67, 33.94, -118.40)
+    2887.2599506071116
+    
     """
     lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
 
