@@ -69,7 +69,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+#docs/_build/
 
 # PyBuilder
 .pybuilder/
@@ -160,5 +160,5 @@ cython_debug/
 #.idea/
 
 # MacOS
-.DS_Store
+#.DS_Store
 
